@@ -15,12 +15,14 @@ import { Tokens } from './types';
 import { CreateAuthDto, LoginAuthDto } from './dto';
 import { AccessTokenGuard } from '../common/guards';
 import { CookieGetter } from '../decorators/cookieGetter.decorator';
+import { Public } from '../common/decorators';
 
+@UseGuards(AccessTokenGuard)
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @UseGuards(AccessTokenGuard)
+  @Public()
   @Post('signup')
   async signup(
     @Body() createAuthDto: CreateAuthDto,
@@ -29,7 +31,7 @@ export class AuthController {
     return this.authService.signup(createAuthDto, res);
   }
 
-  @UseGuards(AccessTokenGuard)
+  @Public()
   @Post('login')
   async login(
     @Body() loginAuthDto: LoginAuthDto,
@@ -47,7 +49,7 @@ export class AuthController {
     return this.authService.refreshToken(+id, refreshToken, res);
   }
 
-  @Post('logout') 
+  @Post('logout')
   async logout(
     @CookieGetter('refresh_token') refreshToken: string,
     @Res({ passthrough: true }) res: Response,
