@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { CreateAuthDto, LoginAuthDto, UpdateAuthDto } from './dto';
@@ -45,7 +49,7 @@ export class AuthService {
     });
   }
 
-  async signup(createAuthDto: CreateAuthDto, res: Response): Promise<Tokens > {
+  async signup(createAuthDto: CreateAuthDto, res: Response): Promise<Tokens> {
     const candidate = await this.prismaService.user.findUnique({
       where: { email: createAuthDto.email },
     });
@@ -73,23 +77,102 @@ export class AuthService {
     return tokens;
   }
 
-  // async login(loginDto: LoginAuthDto) {
-  //   const tempEmail = this.prismaService.findOne({ where: {  } })
-  //   const stuff = await this.prismaService.getStuffByLogin(loginDto.email);
-  //   if (!stuff) {
-  //     throw new UnauthorizedException('wrong login or passowrd');
-  //   }
+  async login(loginDto: LoginAuthDto, res: Response): Promise<any> {
+    const { email, password } = loginDto;
+    const user = await this.prismaService.user.findUnique({ where: { email } });
+    console.log(user);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    const isValidPassword = await bcrypt.compare(password, user.hashedPassword);
+    if (!isValidPassword) {
+      throw new BadRequestException('Invalid password');
+    }
 
-  //   const validPassword = await bcrypt.compare(
-  //     loginDto.password,
-  //     stuff.password,
-  //   );
+    const tokens = await this.getTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
 
-  //   if (!validPassword) {
-  //     throw new UnauthorizedException('wrong login or password');
-  //   }
-  //   return this.genarateToken(stuff);
-  // }
+    res.cookie('refresh_token', tokens.refresh_token, {
+      maxAge: 15 * 24 * 60 * 1000, // 15 days expiration time
+      httpOnly: true, // HTTP only cookie
+    });
+
+    return {
+      message: 'User logged in',
+      tokens,
+    };
+  }
+
+  async refreshToken(
+    userId: number,
+    refreshToken: string,
+    res: Response,
+  ): Promise<any> {
+    console.log(refreshToken);
+
+    const decodedToken = await this.jwtService.decode(refreshToken);
+    if (!decodedToken || userId !== decodedToken['sub']) {
+      throw new BadRequestException('Invalid user or token');
+    }
+
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.hashedRefreshToken) {
+      throw new BadRequestException('User not found');
+    }
+
+    const tokenMatch = await bcrypt.compare(
+      refreshToken,
+      user.hashedRefreshToken,
+    );
+
+    if (!tokenMatch) {
+      throw new ForbiddenException('Forbidden');
+    }
+
+    const tokens = await this.getTokens(user.id, user.email);
+
+    const hashedRefreshToken = await bcrypt.hash(tokens.refresh_token, 7);
+
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: user.id },
+      data: { hashedRefreshToken },
+    });
+
+    res.cookie('refresh_token', tokens.refresh_token, {
+      maxAge: 15 * 24 * 60 * 1000, // 15 days expiration time
+      httpOnly: true, // HTTP only cookie
+    });
+
+    return {
+      message: 'User refreshed',
+      user: updatedUser,
+      tokens,
+    };
+  }
+
+  async logout(refreshToken: string, res: Response) {
+    const userData = await this.jwtService.verify(refreshToken, {
+      secret: process.env.REFRESH_TOKEN_KEY,
+    });
+
+    if (!userData) {
+      throw new ForbiddenException();
+    }
+
+    await this.prismaService.user.update({
+      where: { id: userData.id },
+      data: { hashedPassword: null },
+    });
+
+    res.clearCookie('refresh_token');
+
+    return { message: 'User logged out successfully' };
+  }
+
+  // Other methods...
 
   create(createAuthDto: CreateAuthDto) {
     return;

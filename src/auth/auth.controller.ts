@@ -7,17 +7,20 @@ import {
   Param,
   Delete,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { Response } from 'express';
 import { Tokens } from './types';
+import { CreateAuthDto, LoginAuthDto } from './dto';
+import { AccessTokenGuard } from '../common/guards';
+import { CookieGetter } from '../decorators/cookieGetter.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @UseGuards(AccessTokenGuard)
   @Post('signup')
   async signup(
     @Body() createAuthDto: CreateAuthDto,
@@ -26,28 +29,29 @@ export class AuthController {
     return this.authService.signup(createAuthDto, res);
   }
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+  @UseGuards(AccessTokenGuard)
+  @Post('login')
+  async login(
+    @Body() loginAuthDto: LoginAuthDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<any> {
+    return this.authService.login(loginAuthDto, res);
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
+  @Post(':id/refresh')
+  async refresh(
+    @Param('id') id: number,
+    @CookieGetter('refresh_token') refreshToken: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.refreshToken(+id, refreshToken, res);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @Post('logout') 
+  async logout(
+    @CookieGetter('refresh_token') refreshToken: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.logout(refreshToken, res);
   }
 }
