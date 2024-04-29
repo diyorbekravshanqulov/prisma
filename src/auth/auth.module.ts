@@ -6,9 +6,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { AccessTokenStrategy } from '../common/strategies';
 import { APP_GUARD } from '@nestjs/core';
 import { AccessTokenGuard } from '../common/guards';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [JwtModule.register({}), PrismaModule],
+  imports: [JwtModule.register({}), PrismaModule, UsersModule],
   controllers: [AuthController],
   providers: [
     AuthService,

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -9,12 +10,15 @@ import { CreateAuthDto, LoginAuthDto, UpdateAuthDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { Response } from 'express';
 import { JwtPayload, Tokens } from './types';
+import { UsersService } from '../users/users.service';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly usersService: UsersService,
   ) {}
   async getTokens(userId: number, email: string): Promise<Tokens> {
     const jwtPayload: JwtPayload = {
@@ -49,22 +53,11 @@ export class AuthService {
     });
   }
 
-  async signup(createAuthDto: CreateAuthDto, res: Response): Promise<Tokens> {
-    const candidate = await this.prismaService.user.findUnique({
-      where: { email: createAuthDto.email },
-    });
-    if (candidate) {
-      throw new BadRequestException('User already exists!');
+  async signup(createUserDto: CreateUserDto, res: Response): Promise<Tokens> {
+    const newUser = await this.usersService.create(createUserDto);
+    if (!newUser) {
+      throw new InternalServerErrorException('Yangi user yaratishda xatolik');
     }
-    const hashedPassword = await bcrypt.hash(createAuthDto.password, 7);
-
-    const newUser = await this.prismaService.user.create({
-      data: {
-        name: createAuthDto.name,
-        email: createAuthDto.email,
-        hashedPassword,
-      },
-    });
 
     const tokens = await this.getTokens(newUser.id, newUser.email);
     await this.updateRefreshToken(newUser.id, tokens.refresh_token);

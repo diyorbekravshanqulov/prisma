@@ -16,6 +16,8 @@ import { CreateAuthDto, LoginAuthDto } from './dto';
 import { AccessTokenGuard } from '../common/guards';
 import { CookieGetter } from '../decorators/cookieGetter.decorator';
 import { Public } from '../common/decorators';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { create } from 'domain';
 
 @UseGuards(AccessTokenGuard)
 @Controller('auth')
@@ -25,10 +27,10 @@ export class AuthController {
   @Public()
   @Post('signup')
   async signup(
-    @Body() createAuthDto: CreateAuthDto,
+    @Body() createUserDto: CreateUserDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Tokens> {
-    return this.authService.signup(createAuthDto, res);
+    return this.authService.signup(createUserDto, res);
   }
 
   @Public()
