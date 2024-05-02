@@ -12,13 +12,13 @@ export const cookieExtractor: JwtFromRequestFunction = (req: Request) => {
 };
 
 @Injectable()
-export class RefreshTokenFromBearerStrategy extends PassportStrategy(
+export class RefreshTokenFromCookieStrategy extends PassportStrategy(
   Strategy,
   'refresh-jwt',
 ) {
   constructor() {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: cookieExtractor,
       secretOrKey: process.env.REFRESH_TOKEN_KEY,
       passResCallback: true,
     });

@@ -1,9 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
-import { AccessTokenStrategy, RefreshTokenFromBearerStrategy } from '../common/strategies';
+import {
+  AccessTokenStrategy,
+  RefreshTokenFromBearerStrategy,
+  RefreshTokenFromCookieStrategy,
+} from '../common/strategies';
 import { APP_GUARD } from '@nestjs/core';
 import { AccessTokenGuard } from '../common/guards';
 import { UsersModule } from '../users/users.module';
@@ -14,7 +18,9 @@ import { UsersModule } from '../users/users.module';
   providers: [
     AuthService,
     AccessTokenStrategy,
-    RefreshTokenFromBearerStrategy
+    RefreshTokenFromBearerStrategy,
+    RefreshTokenFromCookieStrategy,
+    Logger
     // { provide: APP_GUARD, useClass: AccessTokenGuard },
   ],
 })

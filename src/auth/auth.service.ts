@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
+    private readonly logger: Logger,
   ) {}
   async getTokens(userId: number, email: string): Promise<Tokens> {
     const jwtPayload: JwtPayload = {
@@ -54,8 +56,10 @@ export class AuthService {
   }
 
   async signup(createUserDto: CreateUserDto, res: Response): Promise<Tokens> {
+    this.logger.debug('Signup', UsersService.name);  
     const newUser = await this.usersService.create(createUserDto);
     if (!newUser) {
+      this.logger.error("error")
       throw new InternalServerErrorException('Yangi user yaratishda xatolik');
     }
 
