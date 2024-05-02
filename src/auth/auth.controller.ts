@@ -15,7 +15,7 @@ import { Tokens } from './types';
 import { CreateAuthDto, LoginAuthDto } from './dto';
 import { AccessTokenGuard } from '../common/guards';
 import { CookieGetter } from '../decorators/cookieGetter.decorator';
-import { GetCurrentUserId, Public } from '../common/decorators';
+import { GetCurrentUser, GetCurrentUserId, Public } from '../common/decorators';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { create } from 'domain';
 
@@ -42,13 +42,18 @@ export class AuthController {
     return this.authService.login(loginAuthDto, res);
   }
 
-  @Post(':id/refresh')
+
+  @Public()
+  // @Post(':id/refresh')
+  @Post("refresh")
   async refresh(
-    @Param('id') id: number,
-    @CookieGetter('refresh_token') refreshToken: string,
+    // @Param('id') id: number,
+    // @CookieGetter('refresh_token') refreshToken: string,
+    @GetCurrentUserId() userId: number,
+    @GetCurrentUser('refreshToken') refreshToken: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.refreshToken(+id, refreshToken, res);
+    return this.authService.refreshToken(+userId, refreshToken, res);
   }
 
   @Post('logout')

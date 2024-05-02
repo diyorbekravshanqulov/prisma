@@ -101,12 +101,12 @@ export class AuthService {
     refreshToken: string,
     res: Response,
   ): Promise<any> {
-    console.log(refreshToken);
+    // console.log(refreshToken);
 
-    const decodedToken = await this.jwtService.decode(refreshToken);
-    if (!decodedToken || userId !== decodedToken['sub']) {
-      throw new BadRequestException('Invalid user or token');
-    }
+    // const decodedToken = await this.jwtService.decode(refreshToken);
+    // if (!decodedToken || userId !== decodedToken['sub']) {
+    //   throw new BadRequestException('Invalid user or token');
+    // }
 
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
@@ -127,23 +127,20 @@ export class AuthService {
 
     const tokens = await this.getTokens(user.id, user.email);
 
-    const hashedRefreshToken = await bcrypt.hash(tokens.refresh_token, 7);
+    // const hashedRefreshToken = await bcrypt.hash(tokens.refresh_token, 7);
 
-    const updatedUser = await this.prismaService.user.update({
-      where: { id: user.id },
-      data: { hashedRefreshToken },
-    });
+    // const updatedUser = await this.prismaService.user.update({
+    //   where: { id: user.id },
+    //   data: { hashedRefreshToken },
+    // });
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
 
     res.cookie('refresh_token', tokens.refresh_token, {
       maxAge: 15 * 24 * 60 * 1000, // 15 days expiration time
       httpOnly: true, // HTTP only cookie
     });
 
-    return {
-      message: 'User refreshed',
-      user: updatedUser,
-      tokens,
-    };
+    return tokens;
   }
 
   async logout(userId: number, res: Response) {
@@ -153,6 +150,7 @@ export class AuthService {
         where: { id: userId },
         data: { hashedPassword: null },
       });
+      console.log('hi----');
 
       // Clear refresh token cookie
       res.clearCookie('refresh_token');
