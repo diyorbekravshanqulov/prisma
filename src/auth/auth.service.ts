@@ -146,23 +146,21 @@ export class AuthService {
     };
   }
 
-  async logout(refreshToken: string, res: Response) {
-    const userData = await this.jwtService.verify(refreshToken, {
-      secret: process.env.REFRESH_TOKEN_KEY,
-    });
+  async logout(userId: number, res: Response) {
+    try {
+      // Update user's hashed password to null to invalidate refresh token
+      await this.prismaService.user.update({
+        where: { id: userId },
+        data: { hashedPassword: null },
+      });
 
-    if (!userData) {
-      throw new ForbiddenException();
+      // Clear refresh token cookie
+      res.clearCookie('refresh_token');
+
+      return { message: 'User logged out successfully' };
+    } catch (error) {
+      throw new Error('Error logging out user');
     }
-
-    await this.prismaService.user.update({
-      where: { id: userData.id },
-      data: { hashedPassword: null },
-    });
-
-    res.clearCookie('refresh_token');
-
-    return { message: 'User logged out successfully' };
   }
 
   // Other methods...

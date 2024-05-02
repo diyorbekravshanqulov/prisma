@@ -15,7 +15,7 @@ import { Tokens } from './types';
 import { CreateAuthDto, LoginAuthDto } from './dto';
 import { AccessTokenGuard } from '../common/guards';
 import { CookieGetter } from '../decorators/cookieGetter.decorator';
-import { Public } from '../common/decorators';
+import { GetCurrentUserId, Public } from '../common/decorators';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { create } from 'domain';
 
@@ -53,9 +53,10 @@ export class AuthController {
 
   @Post('logout')
   async logout(
-    @CookieGetter('refresh_token') refreshToken: string,
+    @GetCurrentUserId() userId: number,
+    // @CookieGetter('refresh_token') refreshToken: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.logout(refreshToken, res);
+    return this.authService.logout(userId, res);
   }
 }
